@@ -1,5 +1,4 @@
 # Taller — Primeros pasos con Scikit-learn, TensorFlow y PyTorch
-### Versión ESTUDIANTE
 
 **Instrucciones generales:**
 - Trabaja en un notebook de Jupyter (Colab o local) con `scikit-learn`, `tensorflow` y `torch` instalados.
@@ -44,6 +43,12 @@ y = [2, 4, 6, 8]
 # 2. Entrénalo con fit(X, y)
 # 3. Predice el valor para X=5
 # 4. Calcula el error (mean_squared_error) sobre los datos de entrenamiento
+
+modelo = LinearRegression()
+modelo.fit(X, y)
+print("Predicción:", modelo.predict([[5]]))
+print("mse: ", mean_squared_error(y, modelo.predict(X)))
+
 ```
 
 ### Ejercicio 1.2 — Clasificación con datos reales (Iris)
