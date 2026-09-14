@@ -16,7 +16,7 @@ COPY requirements.txt .
 ENV CUDA_VISIBLE_DEVICES=-1
 
 RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt \
+ && pip install --no-cache-dir -r docker-requirements.txt \
  # torch CPU-only: evita descargar ~3 GB de paquetes nvidia-* que no se usan sin GPU
  && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
