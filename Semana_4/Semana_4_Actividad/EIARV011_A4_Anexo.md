@@ -5,6 +5,8 @@
 
 **Descripción:** Sigan las instrucciones de la actividad: 
 
+> 💡 Antes de resolver los puntos 3 a 6, pueden explorar el [**recurso interactivo de la Semana 4**](../../Aplicacion_interactiva/Semana_4/index.html) (cuatro módulos: vectorización, estadísticos con NumPy, correlación/prueba t con SciPy, y Matplotlib vs. Seaborn), que usa el mismo *dataset* de Netflix de este taller.
+
 **1) Reconocimiento de *frameworks* de IA en Python (conceptual)**
 
     En el documento, incluyan un apartado corto (máximo 15 líneas) donde expliquen:
