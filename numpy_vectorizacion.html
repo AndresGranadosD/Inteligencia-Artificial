@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NumPy interactivo — Vectorización | Semana 4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #161d2e;
+    --panel-border: #26314a;
+    --text: #e7ecf7;
+    --text-dim: #9aa7c2;
+    --accent: #5eb1ff;
+    --accent-2: #ffb75e;
+    --good: #5edc9a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  header {
+    padding: 32px 20px 16px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .back-link {
+    display: inline-block;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-decoration: none;
+    margin-bottom: 10px;
+  }
+  .back-link:hover { color: var(--accent); }
+  header .kicker {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  header h1 { margin: 6px 0 8px; font-size: clamp(22px, 4vw, 32px); }
+  header p { color: var(--text-dim); max-width: 70ch; }
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 20px clamp(16px, 4vw, 28px) 28px;
+  }
+  section.card h2 { margin-top: 4px; font-size: 20px; }
+  section.card .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 18px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; margin-bottom: 18px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  input[type="range"] { width: 260px; accent-color: var(--accent); }
+  .slider-value { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent-2); }
+  button {
+    background: var(--accent);
+    color: #0b1220;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: progress; }
+  .viz-wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  svg { flex-shrink: 0; max-width: 100%; height: auto; }
+  .axis text { fill: var(--text-dim); font-size: 11px; }
+  .axis path, .axis line { stroke: var(--panel-border); }
+  .bar-loop { fill: var(--accent-2); }
+  .bar-vec { fill: var(--good); }
+  .bar-label { fill: var(--text); font-size: 12px; text-anchor: middle; }
+  .stats { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 10px; }
+  .stat-row {
+    display: flex; justify-content: space-between; border-bottom: 1px dashed var(--panel-border);
+    padding-bottom: 6px; font-size: 14px;
+  }
+  .stat-row span:first-child { color: var(--text-dim); }
+  .stat-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .verdict {
+    margin-top: 6px; padding: 12px 14px; border-radius: 10px; font-size: 14px;
+    background: #101826; border: 1px solid var(--panel-border);
+  }
+  .verdict.good { border-color: var(--good); color: var(--good); }
+  .learn { margin-top: 18px; font-size: 13px; color: var(--accent-2); }
+  .code-wrap { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 18px; }
+  .code-card { flex: 1; min-width: 260px; }
+  .code-card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 8px; }
+  pre {
+    background: #0b111c; border: 1px solid var(--panel-border); border-radius: 10px;
+    padding: 14px 16px; font-size: 13px; overflow-x: auto; margin: 0;
+  }
+  pre.loop-code { border-left: 3px solid var(--accent-2); }
+  pre.vec-code { border-left: 3px solid var(--good); }
+  code { font-family: "SF Mono", Consolas, Menlo, monospace; }
+  .caveat {
+    margin-top: 18px; font-size: 13px; color: var(--text-dim);
+    border-top: 1px dashed var(--panel-border); padding-top: 14px;
+  }
+  footer { max-width: 980px; margin: 0 auto; padding: 0 20px 60px; color: var(--text-dim); font-size: 13px; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">&larr; Recurso interactivo Semana 4</a>
+  <div class="kicker">Semana 4 · Módulo 1 · NumPy</div>
+  <h1>Por qué vectorizar en vez de iterar</h1>
+  <p>
+    Cuando trabajas con una columna de miles de filas (como en <code>titles.csv</code>), puedes
+    recorrerla valor por valor con un <code>for</code>, o dejar que NumPy la trate como un solo
+    bloque de memoria contiguo y opere sobre todo el arreglo de una vez. Elige el tamaño N y
+    ejecuta el comparativo para sentir la diferencia.
+  </p>
+</header>
+
+<main>
+
+  <section class="card" id="bench-section">
+    <h2>Comparativo: construir + sumar cuadrados sobre N elementos</h2>
+    <div class="subtitle">
+      Se mide el tiempo de crear un arreglo de tamaño N y calcular la suma de sus cuadrados, de
+      dos formas: con una lista dinámica recorrida elemento a elemento, y con un arreglo tipado
+      contiguo (la forma en que NumPy almacena los datos internamente).
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label for="n-slider">Tamaño del arreglo N — <span class="slider-value" id="n-value">200.000</span></label>
+        <input type="range" id="n-slider" min="0" max="6" value="2" step="1">
+      </div>
+      <button id="run-btn">Ejecutar benchmark</button>
+    </div>
+
+    <div class="viz-wrap">
+      <svg id="bench-svg" width="320" height="320"></svg>
+      <div class="stats">
+        <div class="stat-row"><span>Loop manual (lista dinámica)</span><span id="stat-loop">—</span></div>
+        <div class="stat-row"><span>Vectorizado (arreglo tipado)</span><span id="stat-vec">—</span></div>
+        <div class="stat-row"><span>Factor de velocidad</span><span id="stat-speedup">—</span></div>
+        <div id="bench-verdict" class="verdict">Presiona «Ejecutar benchmark» para medir.</div>
+        <div class="learn">Aprenderás: por qué NumPy delega el cálculo a memoria contigua en vez de recorrer objeto por objeto, y por qué eso importa mucho más en Python puro que aquí en el navegador.</div>
+      </div>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-card">
+        <h3>Equivalente en Python — loop manual</h3>
+        <pre class="loop-code"><code>lst = []
+for i in range(n):
+    lst.append(i)
+
+total = 0
+for x in lst:
+    total += x ** 2</code></pre>
+      </div>
+      <div class="code-card">
+        <h3>Equivalente en Python — vectorizado con NumPy</h3>
+        <pre class="vec-code"><code>arr = np.arange(n)
+total = np.sum(arr ** 2)</code></pre>
+      </div>
+    </div>
+
+    <div class="caveat">
+      <strong>Nota honesta:</strong> este panel corre en JavaScript, no en Python, así que la
+      diferencia que veas aquí suele ser modesta (el motor del navegador optimiza ambos casos).
+      En Python puro la diferencia es mucho mayor —normalmente 20 a 100 veces— porque un
+      <code>for</code> sobre una lista interpreta cada elemento uno por uno, mientras NumPy
+      ejecuta el cálculo completo en código C precompilado. Para ver la diferencia real, prueba
+      <code>%timeit</code> con este mismo patrón en tu notebook del taller.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Módulo 1/4 del recurso interactivo de Semana 4. Complementa el
+  <a href="https://github.com/cesarabs54/NRC-70446-Fundamentos-para-IA/blob/master/Semana_4/Semana_4_Actividad/EIARV011_A4_Taller.md">taller de la semana</a>, no lo reemplaza.
+</footer>
+
+<script>
+const N_STEPS = [10000, 50000, 200000, 500000, 1000000, 2000000, 5000000];
+
+const nSlider = document.getElementById("n-slider");
+const nValueLabel = document.getElementById("n-value");
+const runBtn = document.getElementById("run-btn");
+
+function fmt(n) { return n.toLocaleString("es-CO"); }
+
+function updateNLabel() {
+  nValueLabel.textContent = fmt(N_STEPS[+nSlider.value]);
+}
+nSlider.addEventListener("input", updateNLabel);
+updateNLabel();
+
+function benchmarkLoop(n) {
+  const t0 = performance.now();
+  const lst = [];
+  for (let i = 0; i < n; i++) lst.push(i);
+  let total = 0;
+  for (let i = 0; i < lst.length; i++) {
+    const x = lst[i];
+    total += x * x;
+  }
+  return { time: performance.now() - t0, total };
+}
+
+function benchmarkVectorized(n) {
+  const t0 = performance.now();
+  const arr = new Float64Array(n);
+  for (let i = 0; i < n; i++) arr[i] = i;
+  let total = 0;
+  for (let i = 0; i < arr.length; i++) {
+    total += arr[i] * arr[i];
+  }
+  return { time: performance.now() - t0, total };
+}
+
+function minOf(fn, n, reps) {
+  let best = Infinity;
+  for (let i = 0; i < reps; i++) {
+    best = Math.min(best, fn(n).time);
+  }
+  return best;
+}
+
+const svg = d3.select("#bench-svg");
+const margin = { top: 16, right: 16, bottom: 34, left: 16 };
+const W = 320 - margin.left - margin.right;
+const H = 320 - margin.top - margin.bottom;
+const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+function drawBars(loopMs, vecMs) {
+  g.selectAll("*").remove();
+  const data = [
+    { key: "Loop", ms: loopMs, cls: "bar-loop" },
+    { key: "Vectorizado", ms: vecMs, cls: "bar-vec" },
+  ];
+  const x = d3.scaleBand().domain(data.map(d => d.key)).range([0, W]).padding(0.4);
+  const maxMs = Math.max(loopMs, vecMs, 0.001);
+  const y = d3.scaleLinear().domain([0, maxMs]).nice().range([H, 0]);
+
+  g.selectAll("rect").data(data).join("rect")
+    .attr("class", d => d.cls)
+    .attr("x", d => x(d.key))
+    .attr("width", x.bandwidth())
+    .attr("y", d => y(d.ms))
+    .attr("height", d => H - y(d.ms));
+
+  g.selectAll("text.bar-label").data(data).join("text")
+    .attr("class", "bar-label")
+    .attr("x", d => x(d.key) + x.bandwidth() / 2)
+    .attr("y", d => y(d.ms) - 8)
+    .text(d => d.ms.toFixed(1) + " ms");
+
+  g.append("g").attr("class", "axis").attr("transform", `translate(0,${H})`)
+    .call(d3.axisBottom(x));
+}
+
+async function runBenchmark() {
+  runBtn.disabled = true;
+  runBtn.textContent = "Ejecutando…";
+  document.getElementById("bench-verdict").textContent = "Midiendo…";
+  // yield a frame so the UI updates before the (synchronous, blocking) benchmark runs
+  await new Promise(r => setTimeout(r, 30));
+
+  const n = N_STEPS[+nSlider.value];
+  const loopMs = minOf(benchmarkLoop, n, 3);
+  const vecMs = minOf(benchmarkVectorized, n, 3);
+
+  drawBars(loopMs, vecMs);
+
+  document.getElementById("stat-loop").textContent = loopMs.toFixed(2) + " ms";
+  document.getElementById("stat-vec").textContent = vecMs.toFixed(2) + " ms";
+  const speedup = loopMs / Math.max(vecMs, 0.001);
+  document.getElementById("stat-speedup").textContent = speedup.toFixed(2) + "×";
+
+  const verdict = document.getElementById("bench-verdict");
+  if (speedup > 1.05) {
+    verdict.textContent = `El arreglo tipado fue ${speedup.toFixed(1)}× más rápido con N = ${fmt(n)}. En Python, esa misma idea (NumPy vs. lista) suele ampliarse mucho más.`;
+    verdict.className = "verdict good";
+  } else {
+    verdict.textContent = `Con N = ${fmt(n)}, el motor de JavaScript optimizó ambos casos de forma similar — esperable aquí. La lección clave sigue aplicando en Python, donde no hay JIT tan agresivo para listas.`;
+    verdict.className = "verdict";
+  }
+
+  runBtn.disabled = false;
+  runBtn.textContent = "Ejecutar benchmark";
+}
+
+runBtn.addEventListener("click", runBenchmark);
+drawBars(0, 0);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SciPy interactivo — Correlación y prueba t | Semana 4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstat/1.9.6/jstat.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #161d2e;
+    --panel-border: #26314a;
+    --text: #e7ecf7;
+    --text-dim: #9aa7c2;
+    --accent: #5eb1ff;
+    --accent-2: #ffb75e;
+    --good: #5edc9a;
+    --bad: #ff6b6b;
+    --grid: #26314a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  header {
+    padding: 32px 20px 16px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .back-link {
+    display: inline-block;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-decoration: none;
+    margin-bottom: 10px;
+  }
+  .back-link:hover { color: var(--accent); }
+  header .kicker {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  header h1 {
+    margin: 6px 0 8px;
+    font-size: clamp(22px, 4vw, 32px);
+  }
+  header p {
+    color: var(--text-dim);
+    max-width: 70ch;
+  }
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 20px clamp(16px, 4vw, 28px) 28px;
+  }
+  section.card h2 {
+    margin-top: 4px;
+    font-size: 20px;
+  }
+  section.card .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  select {
+    background: #0f1420;
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    min-width: 170px;
+  }
+  .viz-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  svg { flex-shrink: 0; max-width: 100%; height: auto; }
+  .axis text { fill: var(--text-dim); font-size: 11px; }
+  .axis path, .axis line { stroke: var(--panel-border); }
+  .stats {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--panel-border);
+    padding-bottom: 6px;
+    font-size: 14px;
+  }
+  .stat-row span:first-child { color: var(--text-dim); }
+  .stat-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .verdict {
+    margin-top: 6px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    background: #101826;
+    border: 1px solid var(--panel-border);
+  }
+  .verdict.good { border-color: var(--good); color: var(--good); }
+  .verdict.bad { border-color: var(--bad); color: var(--bad); }
+  .learn {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--accent-2);
+  }
+  .dot { fill: var(--accent); opacity: 0.35; }
+  .dot.show { fill: var(--accent-2); }
+  .trend { stroke: var(--good); stroke-width: 2px; }
+  .legend { font-size: 12px; color: var(--text-dim); display: flex; gap: 16px; margin-bottom: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  footer {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">&larr; Recurso interactivo Semana 4</a>
+  <div class="kicker">Semana 4 · Módulo 3 · SciPy</div>
+  <h1>Correlación y prueba t, explorando el dataset del taller</h1>
+  <p>
+    Este recurso usa el mismo dataset de <code>titles.csv</code> (títulos de Netflix) que
+    trabajarás en el taller de la semana, para observar en vivo qué calcula SciPy cuando
+    hablamos de <strong>correlación de Pearson</strong> y de una <strong>prueba t de dos
+    muestras</strong>. Cambia las variables y observa cómo cambian el gráfico y los números.
+  </p>
+</header>
+
+<main>
+
+  <section class="card" id="corr-section">
+    <h2>1 · Correlación de Pearson</h2>
+    <div class="subtitle">
+      ¿Qué tan relacionadas están dos variables numéricas? SciPy resume esa relación en un
+      solo número, <em>r</em>, entre -1 y 1.
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label for="corr-x">Variable X</label>
+        <select id="corr-x"></select>
+      </div>
+      <div class="field">
+        <label for="corr-y">Variable Y</label>
+        <select id="corr-y"></select>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--accent)"></span> MOVIE</span>
+      <span><span class="swatch" style="background:var(--accent-2)"></span> SHOW</span>
+    </div>
+
+    <div class="viz-wrap">
+      <svg id="corr-svg" width="520" height="380"></svg>
+      <div class="stats">
+        <div class="stat-row"><span>r de Pearson</span><span id="corr-r">—</span></div>
+        <div class="stat-row"><span>n (pares usados)</span><span id="corr-n">—</span></div>
+        <div class="stat-row"><span>Pendiente de la recta</span><span id="corr-slope">—</span></div>
+        <div id="corr-verdict" class="verdict">—</div>
+        <div class="learn">Aprenderás: cómo leer la fuerza y dirección de una correlación, y por qué correlación no implica causalidad.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="ttest-section">
+    <h2>2 · Prueba t de dos muestras (Welch)</h2>
+    <div class="subtitle">
+      ¿La diferencia que ves entre películas y series es real o podría deberse al azar?
+      La prueba t compara las medias de dos grupos y entrega un p-valor para decidirlo.
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label for="ttest-var">Variable a comparar</label>
+        <select id="ttest-var"></select>
+      </div>
+    </div>
+
+    <div class="viz-wrap">
+      <svg id="ttest-svg" width="420" height="380"></svg>
+      <div class="stats">
+        <div class="stat-row"><span>Media MOVIE</span><span id="tt-mean-movie">—</span></div>
+        <div class="stat-row"><span>Media SHOW</span><span id="tt-mean-show">—</span></div>
+        <div class="stat-row"><span>t</span><span id="tt-t">—</span></div>
+        <div class="stat-row"><span>Grados de libertad</span><span id="tt-df">—</span></div>
+        <div class="stat-row"><span>p-valor</span><span id="tt-p">—</span></div>
+        <div id="tt-verdict" class="verdict">—</div>
+        <div class="learn">Aprenderás: a interpretar un p-valor frente a α = 0.05 y a distinguir diferencia estadísticamente significativa de diferencia grande.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Módulo 3/4 del recurso interactivo de Semana 4. Dataset: <code>titles.csv</code>
+  (mismo del <a href="https://github.com/cesarabs54/NRC-70446-Fundamentos-para-IA/blob/master/Semana_4/Semana_4_Actividad/EIARV011_A4_Taller.md">taller de la semana</a>), filtrado a casos
+  completos con <code>build_data.py</code>. Complementa el taller, no lo reemplaza.
+</footer>
+
+<script>
+const VAR_LABELS = {
+  imdb_score: "Puntaje IMDb",
+  tmdb_score: "Puntaje TMDB",
+  runtime: "Duración (min)",
+  imdb_votes: "Votos IMDb",
+  release_year: "Año de estreno",
+};
+const CORR_VARS = ["imdb_score", "tmdb_score", "runtime", "imdb_votes", "release_year"];
+const TTEST_VARS = ["imdb_score", "tmdb_score", "runtime"];
+
+function populateSelect(sel, keys, selected) {
+  sel.innerHTML = "";
+  keys.forEach(k => {
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.textContent = VAR_LABELS[k];
+    if (k === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function variance(arr, m) { return arr.reduce((a, b) => a + (b - m) ** 2, 0) / (arr.length - 1); }
+
+function pearson(xs, ys) {
+  const mx = mean(xs), my = mean(ys);
+  let num = 0, dx2 = 0, dy2 = 0;
+  for (let i = 0; i < xs.length; i++) {
+    const dx = xs[i] - mx, dy = ys[i] - my;
+    num += dx * dy;
+    dx2 += dx * dx;
+    dy2 += dy * dy;
+  }
+  const r = num / Math.sqrt(dx2 * dy2);
+  const slope = num / dx2;
+  const intercept = my - slope * mx;
+  return { r, slope, intercept, mx, my };
+}
+
+function welchTTest(a, b) {
+  const ma = mean(a), mb = mean(b);
+  const va = variance(a, ma), vb = variance(b, mb);
+  const na = a.length, nb = b.length;
+  const se2 = va / na + vb / nb;
+  const t = (ma - mb) / Math.sqrt(se2);
+  const df = (se2 ** 2) / ((va / na) ** 2 / (na - 1) + (vb / nb) ** 2 / (nb - 1));
+  const p = 2 * (1 - jStat.studentt.cdf(Math.abs(t), df));
+  return { ma, mb, t, df, p };
+}
+
+function corrVerdictText(r) {
+  const abs = Math.abs(r);
+  let strength = "muy débil o nula";
+  if (abs >= 0.7) strength = "fuerte";
+  else if (abs >= 0.4) strength = "moderada";
+  else if (abs >= 0.2) strength = "débil";
+  const dir = r >= 0 ? "positiva" : "negativa";
+  return { strength, dir, isStrong: abs >= 0.4 };
+}
+
+// ---------- Correlación ----------
+const corrX = document.getElementById("corr-x");
+const corrY = document.getElementById("corr-y");
+populateSelect(corrX, CORR_VARS, "runtime");
+populateSelect(corrY, CORR_VARS, "imdb_score");
+
+const corrSvg = d3.select("#corr-svg");
+const corrMargin = { top: 16, right: 16, bottom: 44, left: 56 };
+const corrW = 520 - corrMargin.left - corrMargin.right;
+const corrH = 380 - corrMargin.top - corrMargin.bottom;
+const corrG = corrSvg.append("g").attr("transform", `translate(${corrMargin.left},${corrMargin.top})`);
+const corrXAxisG = corrG.append("g").attr("class", "axis").attr("transform", `translate(0,${corrH})`);
+const corrYAxisG = corrG.append("g").attr("class", "axis");
+const corrXLabel = corrSvg.append("text").attr("class", "axis").attr("text-anchor", "middle")
+  .attr("x", corrMargin.left + corrW / 2).attr("y", 378).style("fill", "var(--text-dim)").style("font-size", "12px");
+const corrYLabel = corrSvg.append("text").attr("class", "axis").attr("text-anchor", "middle")
+  .attr("transform", `translate(14, ${corrMargin.top + corrH / 2}) rotate(-90)`)
+  .style("fill", "var(--text-dim)").style("font-size", "12px");
+
+function drawCorr() {
+  const xKey = corrX.value, yKey = corrY.value;
+  const rows = NETFLIX_DATA;
+  const xs = rows.map(d => d[xKey]);
+  const ys = rows.map(d => d[yKey]);
+  const types = rows.map(d => d.type);
+
+  const { r, slope, intercept } = pearson(xs, ys);
+
+  const x = d3.scaleLinear().domain(d3.extent(xs)).nice().range([0, corrW]);
+  const y = d3.scaleLinear().domain(d3.extent(ys)).nice().range([corrH, 0]);
+
+  corrXAxisG.transition().duration(300).call(d3.axisBottom(x).ticks(6));
+  corrYAxisG.transition().duration(300).call(d3.axisLeft(y).ticks(6));
+  corrXLabel.text(VAR_LABELS[xKey]);
+  corrYLabel.text(VAR_LABELS[yKey]);
+
+  const dots = corrG.selectAll("circle.dot").data(rows, (d, i) => i);
+  dots.join(
+    enter => enter.append("circle")
+      .attr("class", d => "dot" + (d.type === "SHOW" ? " show" : ""))
+      .attr("r", 2.6)
+      .attr("cx", d => x(d[xKey]))
+      .attr("cy", d => y(d[yKey])),
+    update => update
+      .attr("class", d => "dot" + (d.type === "SHOW" ? " show" : ""))
+      .transition().duration(300)
+      .attr("cx", d => x(d[xKey]))
+      .attr("cy", d => y(d[yKey]))
+  );
+
+  const xDomain = x.domain();
+  const linePts = [
+    { x: xDomain[0], y: intercept + slope * xDomain[0] },
+    { x: xDomain[1], y: intercept + slope * xDomain[1] },
+  ];
+  const lineSel = corrG.selectAll("line.trend").data([linePts]);
+  lineSel.join(
+    enter => enter.append("line").attr("class", "trend")
+      .attr("x1", d => x(d[0].x)).attr("y1", d => y(d[0].y))
+      .attr("x2", d => x(d[1].x)).attr("y2", d => y(d[1].y)),
+    update => update.transition().duration(300)
+      .attr("x1", d => x(d[0].x)).attr("y1", d => y(d[0].y))
+      .attr("x2", d => x(d[1].x)).attr("y2", d => y(d[1].y))
+  );
+
+  document.getElementById("corr-r").textContent = r.toFixed(3);
+  document.getElementById("corr-n").textContent = rows.length;
+  document.getElementById("corr-slope").textContent = slope.toFixed(4);
+
+  const { strength, dir, isStrong } = corrVerdictText(r);
+  const verdict = document.getElementById("corr-verdict");
+  verdict.textContent = `Correlación ${strength} y ${dir} entre ${VAR_LABELS[xKey]} y ${VAR_LABELS[yKey]}.`;
+  verdict.className = "verdict " + (isStrong ? "good" : "");
+}
+
+corrX.addEventListener("change", drawCorr);
+corrY.addEventListener("change", drawCorr);
+drawCorr();
+
+// ---------- Prueba t ----------
+const ttestVar = document.getElementById("ttest-var");
+populateSelect(ttestVar, TTEST_VARS, "runtime");
+
+const ttestSvg = d3.select("#ttest-svg");
+const ttMargin = { top: 16, right: 16, bottom: 40, left: 56 };
+const ttW = 420 - ttMargin.left - ttMargin.right;
+const ttH = 380 - ttMargin.top - ttMargin.bottom;
+const ttG = ttestSvg.append("g").attr("transform", `translate(${ttMargin.left},${ttMargin.top})`);
+const ttXAxisG = ttG.append("g").attr("class", "axis").attr("transform", `translate(0,${ttH})`);
+const ttYAxisG = ttG.append("g").attr("class", "axis");
+const ttYLabel = ttestSvg.append("text").attr("class", "axis").attr("text-anchor", "middle")
+  .attr("transform", `translate(14, ${ttMargin.top + ttH / 2}) rotate(-90)`)
+  .style("fill", "var(--text-dim)").style("font-size", "12px");
+
+function jitterStrip(values, xCenter, xScale) {
+  return values.map(v => xCenter + (Math.random() - 0.5) * xScale * 0.7);
+}
+
+function drawTTest() {
+  const key = ttestVar.value;
+  const movieVals = NETFLIX_DATA.filter(d => d.type === "MOVIE").map(d => d[key]);
+  const showVals = NETFLIX_DATA.filter(d => d.type === "SHOW").map(d => d[key]);
+
+  const { ma, mb, t, df, p } = welchTTest(movieVals, showVals);
+
+  const allVals = movieVals.concat(showVals);
+  const x = d3.scaleBand().domain(["MOVIE", "SHOW"]).range([0, ttW]).padding(0.4);
+  const y = d3.scaleLinear().domain(d3.extent(allVals)).nice().range([ttH, 0]);
+
+  ttXAxisG.transition().duration(300).call(d3.axisBottom(x));
+  ttYAxisG.transition().duration(300).call(d3.axisLeft(y).ticks(6));
+  ttYLabel.text(VAR_LABELS[key]);
+
+  const groups = [
+    { key: "MOVIE", values: movieVals, mean: ma, cls: "" },
+    { key: "SHOW", values: showVals, mean: mb, cls: "show" },
+  ];
+
+  const pointData = [];
+  groups.forEach(g => {
+    const cx = x(g.key) + x.bandwidth() / 2;
+    g.values.forEach(v => pointData.push({ cx: cx + (Math.random() - 0.5) * x.bandwidth() * 0.7, v, cls: g.cls }));
+  });
+
+  const dots = ttG.selectAll("circle.dot").data(pointData);
+  dots.join(
+    enter => enter.append("circle")
+      .attr("class", d => "dot" + (d.cls ? " " + d.cls : ""))
+      .attr("r", 2)
+      .attr("cx", d => d.cx)
+      .attr("cy", d => y(d.v)),
+    update => update
+      .attr("class", d => "dot" + (d.cls ? " " + d.cls : ""))
+      .transition().duration(300)
+      .attr("cx", d => d.cx)
+      .attr("cy", d => y(d.v))
+  );
+
+  const meanLines = ttG.selectAll("line.meanline").data(groups);
+  meanLines.join(
+    enter => enter.append("line").attr("class", "meanline")
+      .attr("x1", d => x(d.key)).attr("x2", d => x(d.key) + x.bandwidth())
+      .attr("y1", d => y(d.mean)).attr("y2", d => y(d.mean))
+      .attr("stroke", "var(--accent-2)").attr("stroke-width", 2.5),
+    update => update.transition().duration(300)
+      .attr("y1", d => y(d.mean)).attr("y2", d => y(d.mean))
+  );
+
+  document.getElementById("tt-mean-movie").textContent = ma.toFixed(2);
+  document.getElementById("tt-mean-show").textContent = mb.toFixed(2);
+  document.getElementById("tt-t").textContent = t.toFixed(3);
+  document.getElementById("tt-df").textContent = df.toFixed(1);
+  document.getElementById("tt-p").textContent = p < 0.0001 ? "< 0.0001" : p.toFixed(4);
+
+  const verdict = document.getElementById("tt-verdict");
+  const significant = p < 0.05;
+  verdict.textContent = significant
+    ? `p < 0.05 → la diferencia entre MOVIE y SHOW en ${VAR_LABELS[key]} es estadísticamente significativa.`
+    : `p ≥ 0.05 → no hay evidencia suficiente de diferencia entre MOVIE y SHOW en ${VAR_LABELS[key]}.`;
+  verdict.className = "verdict " + (significant ? "good" : "bad");
+}
+
+ttestVar.addEventListener("change", drawTTest);
+drawTTest();
+</script>
+
+</body>
+</html>

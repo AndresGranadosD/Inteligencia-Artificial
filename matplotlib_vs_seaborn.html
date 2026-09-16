@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matplotlib vs. Seaborn | Semana 4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #161d2e;
+    --panel-border: #26314a;
+    --text: #e7ecf7;
+    --text-dim: #9aa7c2;
+    --accent: #5eb1ff;
+    --accent-2: #ffb75e;
+    --good: #5edc9a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  header { padding: 32px 20px 16px; max-width: 1040px; margin: 0 auto; }
+  .back-link {
+    display: inline-block; color: var(--text-dim); font-size: 13px;
+    text-decoration: none; margin-bottom: 10px;
+  }
+  .back-link:hover { color: var(--accent); }
+  header .kicker {
+    color: var(--accent); font-size: 13px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  header h1 { margin: 6px 0 8px; font-size: clamp(22px, 4vw, 32px); }
+  header p { color: var(--text-dim); max-width: 72ch; }
+  main {
+    max-width: 1040px; margin: 0 auto; padding: 0 20px 60px;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  section.card {
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 14px; padding: 20px clamp(16px, 4vw, 28px) 28px;
+  }
+  section.card h2 { margin-top: 4px; font-size: 20px; }
+  section.card .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 18px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 18px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  select {
+    background: #0f1420; color: var(--text); border: 1px solid var(--panel-border);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px; min-width: 170px;
+  }
+  .charts-wrap { display: flex; flex-wrap: wrap; gap: 20px; }
+  .chart-panel {
+    flex: 1; min-width: 300px; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--panel-border);
+  }
+  .chart-panel .panel-label {
+    padding: 8px 14px; font-size: 13px; font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .chart-panel.mpl .panel-label { background: #1f2937; color: #cbd5e1; }
+  .chart-panel.sns .panel-label { background: #2b2440; color: #d8ceff; }
+  .chart-panel svg { display: block; width: 100%; height: auto; }
+  .learn { margin-top: 18px; font-size: 13px; color: var(--accent-2); }
+  .code-wrap { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 18px; }
+  .code-card { flex: 1; min-width: 260px; }
+  .code-card h3 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-dim); margin-bottom: 8px;
+  }
+  pre {
+    background: #0b111c; border: 1px solid var(--panel-border); border-radius: 10px;
+    padding: 14px 16px; font-size: 13px; overflow-x: auto; margin: 0;
+  }
+  pre.mpl-code { border-left: 3px solid #6fa8dc; }
+  pre.sns-code { border-left: 3px solid #b39ddb; }
+  code { font-family: "SF Mono", Consolas, Menlo, monospace; }
+  .caveat {
+    margin-top: 18px; font-size: 13px; color: var(--text-dim);
+    border-top: 1px dashed var(--panel-border); padding-top: 14px;
+  }
+  footer { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; color: var(--text-dim); font-size: 13px; }
+  footer a { color: var(--accent); }
+  .axis-label { font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">&larr; Recurso interactivo Semana 4</a>
+  <div class="kicker">Semana 4 · Módulo 4 · Matplotlib &amp; Seaborn</div>
+  <h1>El mismo gráfico, dos librerías</h1>
+  <p>
+    Elige un tipo de gráfico y una variable de <code>titles.csv</code>. Ambos paneles usan
+    exactamente los mismos datos y estadísticos — lo que cambia es la librería: sus estilos
+    por defecto y cuánto código necesitas para llegar al mismo resultado.
+  </p>
+</header>
+
+<main>
+
+  <section class="card" id="compare-section">
+    <h2>Comparación lado a lado</h2>
+    <div class="subtitle">
+      El panel de Matplotlib reproduce su apariencia por defecto (fondo blanco, sin
+      cuadrícula). El de Seaborn reproduce el tema <code>darkgrid</code> que aplica
+      automáticamente al importar sus funciones de gráfico — el que verás si no cambias
+      nada en tu notebook.
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label for="chart-type">Tipo de gráfico</label>
+        <select id="chart-type">
+          <option value="hist">Histograma</option>
+          <option value="box">Boxplot (MOVIE vs SHOW)</option>
+          <option value="scatter">Dispersión + regresión</option>
+        </select>
+      </div>
+      <div class="field" id="var-field">
+        <label for="var-select">Variable</label>
+        <select id="var-select"></select>
+      </div>
+      <div class="field" id="var-y-field" style="display:none;">
+        <label for="var-y-select">Variable Y</label>
+        <select id="var-y-select"></select>
+      </div>
+    </div>
+
+    <div class="charts-wrap">
+      <div class="chart-panel mpl">
+        <div class="panel-label">Matplotlib (estilo por defecto)</div>
+        <svg id="mpl-svg" viewBox="0 0 480 360"></svg>
+      </div>
+      <div class="chart-panel sns">
+        <div class="panel-label">Seaborn (tema darkgrid, por defecto)</div>
+        <svg id="sns-svg" viewBox="0 0 480 360"></svg>
+      </div>
+    </div>
+
+    <div class="learn">Aprenderás: diferencias prácticas entre ambas librerías — Seaborn agrupa, estima densidad (KDE) y ajusta regresiones con una sola llamada; Matplotlib te da el lienzo en blanco y el control manual de cada elemento.</div>
+
+    <div class="code-wrap">
+      <div class="code-card">
+        <h3>Matplotlib</h3>
+        <pre class="mpl-code"><code id="mpl-code"></code></pre>
+      </div>
+      <div class="code-card">
+        <h3>Seaborn</h3>
+        <pre class="sns-code"><code id="sns-code"></code></pre>
+      </div>
+    </div>
+
+    <div class="caveat">
+      <strong>Nota honesta:</strong> estos paneles no ejecutan Python — son una recreación en
+      D3.js fiel a los estilos por defecto de cada librería (colores, cuadrícula, KDE,
+      agrupación), calculada sobre los mismos datos reales del taller. El código de al lado sí
+      es el que produciría un resultado equivalente en tu notebook.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Módulo 4/4 del recurso interactivo de Semana 4. Dataset: <code>titles.csv</code>
+  (mismo del <a href="https://github.com/cesarabs54/NRC-70446-Fundamentos-para-IA/blob/master/Semana_4/Semana_4_Actividad/EIARV011_A4_Taller.md">taller de la semana</a>).
+  Complementa el taller, no lo reemplaza.
+</footer>
+
+<script>
+const VAR_LABELS = {
+  imdb_score: "Puntaje IMDb",
+  tmdb_score: "Puntaje TMDB",
+  runtime: "Duración (min)",
+  imdb_votes: "Votos IMDb",
+  release_year: "Año de estreno",
+};
+const NUMERIC_VARS = ["imdb_score", "tmdb_score", "runtime", "imdb_votes", "release_year"];
+
+function populateSelect(sel, keys, selected) {
+  sel.innerHTML = "";
+  keys.forEach(k => {
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.textContent = VAR_LABELS[k];
+    if (k === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function std(arr, m) { return Math.sqrt(arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length); }
+function median(sorted) {
+  const n = sorted.length, mid = Math.floor(n / 2);
+  return n % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+function percentile(sorted, p) {
+  const n = sorted.length;
+  const rank = (p / 100) * (n - 1);
+  const lo = Math.floor(rank), hi = Math.ceil(rank);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (rank - lo);
+}
+
+function gaussianKDE(values, m, s, xGrid) {
+  const n = values.length;
+  const h = 1.06 * s * Math.pow(n, -1 / 5); // regla de Silverman
+  return xGrid.map(x => {
+    let sum = 0;
+    for (let i = 0; i < n; i++) {
+      const u = (x - values[i]) / h;
+      sum += Math.exp(-0.5 * u * u);
+    }
+    return sum / (n * h * Math.sqrt(2 * Math.PI));
+  });
+}
+
+function linreg(xs, ys) {
+  const mx = mean(xs), my = mean(ys);
+  let num = 0, den = 0;
+  for (let i = 0; i < xs.length; i++) { num += (xs[i] - mx) * (ys[i] - my); den += (xs[i] - mx) ** 2; }
+  const slope = num / den, intercept = my - slope * mx;
+  const residuals = xs.map((x, i) => ys[i] - (intercept + slope * x));
+  const resStd = std(residuals, 0);
+  return { slope, intercept, resStd };
+}
+
+const chartType = document.getElementById("chart-type");
+const varSelect = document.getElementById("var-select");
+const varYField = document.getElementById("var-y-field");
+const varYSelect = document.getElementById("var-y-select");
+const varFieldLabel = document.querySelector("#var-field label");
+
+populateSelect(varSelect, NUMERIC_VARS, "runtime");
+populateSelect(varYSelect, NUMERIC_VARS, "imdb_score");
+
+const CODE_SNIPPETS = {
+  hist: {
+    mpl: `plt.hist(df["{v}"], bins=25, color="tab:blue")
+plt.xlabel("{v}")
+plt.ylabel("Frecuencia")
+plt.show()`,
+    sns: `sns.histplot(data=df, x="{v}", bins=25, kde=True)
+plt.show()`,
+  },
+  box: {
+    mpl: `plt.boxplot(df["{v}"])
+plt.ylabel("{v}")
+plt.show()
+
+# Para agrupar por tipo con Matplotlib puro
+# hay que separar los datos a mano:
+# plt.boxplot([movies["{v}"], shows["{v}"]],
+#             labels=["MOVIE", "SHOW"])`,
+    sns: `sns.boxplot(data=df, x="type", y="{v}")
+plt.show()`,
+  },
+  scatter: {
+    mpl: `plt.scatter(df["{vx}"], df["{vy}"], alpha=0.4)
+plt.xlabel("{vx}")
+plt.ylabel("{vy}")
+plt.show()
+
+# la línea de regresión hay que ajustarla
+# y dibujarla por separado (p. ej. con SciPy)`,
+    sns: `sns.regplot(data=df, x="{vx}", y="{vy}",
+            scatter_kws={"alpha": 0.4})
+plt.show()`,
+  },
+};
+
+function updateControls() {
+  const type = chartType.value;
+  if (type === "scatter") {
+    varFieldLabel.textContent = "Variable X";
+    varYField.style.display = "";
+  } else {
+    varFieldLabel.textContent = "Variable";
+    varYField.style.display = "none";
+  }
+}
+
+// ---------- Paneles ----------
+const mplSvg = d3.select("#mpl-svg");
+const snsSvg = d3.select("#sns-svg");
+const VBW = 480, VBH = 360;
+const margin = { top: 20, right: 20, bottom: 50, left: 56 };
+const W = VBW - margin.left - margin.right;
+const H = VBH - margin.top - margin.bottom;
+
+function setupPanel(svg, bg) {
+  svg.selectAll("*").remove();
+  svg.append("rect").attr("width", VBW).attr("height", VBH).attr("fill", bg);
+  return svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+}
+
+function mplAxes(g, x, y, xLabel, yLabel) {
+  g.append("g").attr("transform", `translate(0,${H})`).call(d3.axisBottom(x).ticks(6))
+    .call(sel => sel.selectAll("text").attr("fill", "#333").attr("font-size", "11px"))
+    .call(sel => sel.selectAll("line,path").attr("stroke", "#333"));
+  g.append("g").call(d3.axisLeft(y).ticks(6))
+    .call(sel => sel.selectAll("text").attr("fill", "#333").attr("font-size", "11px"))
+    .call(sel => sel.selectAll("line,path").attr("stroke", "#333"));
+  g.append("rect").attr("x", 0).attr("y", 0).attr("width", W).attr("height", H)
+    .attr("fill", "none").attr("stroke", "#333").attr("stroke-width", 1);
+  g.append("text").attr("class", "axis-label").attr("x", W / 2).attr("y", H + 38)
+    .attr("text-anchor", "middle").attr("fill", "#333").text(xLabel);
+  g.append("text").attr("class", "axis-label").attr("transform", `translate(-42,${H / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle").attr("fill", "#333").text(yLabel);
+}
+
+function snsAxes(g, x, y, xLabel, yLabel) {
+  g.selectAll("g.gridx").data([0]).join("g").attr("class", "gridx")
+    .attr("transform", `translate(0,${H})`)
+    .call(d3.axisBottom(x).ticks(6).tickSize(-H).tickFormat(""))
+    .call(sel => sel.selectAll("line").attr("stroke", "#fff").attr("stroke-width", 1))
+    .call(sel => sel.select(".domain").remove());
+  g.selectAll("g.gridy").data([0]).join("g").attr("class", "gridy")
+    .call(d3.axisLeft(y).ticks(6).tickSize(-W).tickFormat(""))
+    .call(sel => sel.selectAll("line").attr("stroke", "#fff").attr("stroke-width", 1))
+    .call(sel => sel.select(".domain").remove());
+  g.append("g").attr("transform", `translate(0,${H})`).call(d3.axisBottom(x).ticks(6))
+    .call(sel => sel.select(".domain").remove())
+    .call(sel => sel.selectAll("text").attr("fill", "#4c4c4c").attr("font-size", "12px"))
+    .call(sel => sel.selectAll("line").remove());
+  g.append("g").call(d3.axisLeft(y).ticks(6))
+    .call(sel => sel.select(".domain").remove())
+    .call(sel => sel.selectAll("text").attr("fill", "#4c4c4c").attr("font-size", "12px"))
+    .call(sel => sel.selectAll("line").remove());
+  g.append("text").attr("class", "axis-label").attr("x", W / 2).attr("y", H + 38)
+    .attr("text-anchor", "middle").attr("fill", "#4c4c4c").text(xLabel);
+  g.append("text").attr("class", "axis-label").attr("transform", `translate(-42,${H / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle").attr("fill", "#4c4c4c").text(yLabel);
+}
+
+function renderHist() {
+  const key = varSelect.value;
+  const values = NETFLIX_DATA.map(d => d[key]);
+  const sorted = [...values].sort((a, b) => a - b);
+  const m = mean(values), s = std(values, m);
+
+  const x = d3.scaleLinear().domain(d3.extent(values)).nice().range([0, W]);
+  const bins = d3.bin().domain(x.domain()).thresholds(25)(values);
+  const maxCount = d3.max(bins, b => b.length);
+  const y = d3.scaleLinear().domain([0, maxCount]).nice().range([H, 0]);
+
+  // --- Matplotlib ---
+  const gm = setupPanel(mplSvg, "#ffffff");
+  gm.selectAll("rect.bar").data(bins).join("rect")
+    .attr("x", d => x(d.x0) + 1).attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+    .attr("y", d => y(d.length)).attr("height", d => H - y(d.length))
+    .attr("fill", "#1f77b4");
+  mplAxes(gm, x, y, VAR_LABELS[key], "Frecuencia");
+
+  // --- Seaborn ---
+  const gs = setupPanel(snsSvg, "#EAEAF2");
+  snsAxes(gs, x, y, VAR_LABELS[key], "Frecuencia");
+  gs.selectAll("rect.bar").data(bins).join("rect")
+    .attr("x", d => x(d.x0) + 1).attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+    .attr("y", d => y(d.length)).attr("height", d => H - y(d.length))
+    .attr("fill", "#4C72B0").attr("opacity", 0.85);
+
+  const xGrid = d3.range(x.domain()[0], x.domain()[1], (x.domain()[1] - x.domain()[0]) / 120);
+  const density = gaussianKDE(values, m, s, xGrid);
+  const binWidth = bins[0] ? (bins[0].x1 - bins[0].x0) : 1;
+  const scaledCounts = density.map(d => d * values.length * binWidth);
+  const line = d3.line().x((d, i) => x(xGrid[i])).y(d => y(d)).curve(d3.curveBasis);
+  gs.append("path").datum(scaledCounts).attr("d", line)
+    .attr("fill", "none").attr("stroke", "#DD8452").attr("stroke-width", 2.5);
+}
+
+function renderBox() {
+  const key = varSelect.value;
+
+  function boxStats(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+    const q1 = percentile(sorted, 25), q2 = percentile(sorted, 50), q3 = percentile(sorted, 75);
+    const iqr = q3 - q1;
+    const loFence = q1 - 1.5 * iqr, hiFence = q3 + 1.5 * iqr;
+    const whiskerLo = d3.max([sorted[0], loFence]);
+    const whiskerHi = d3.min([sorted[sorted.length - 1], hiFence]);
+    const outliers = sorted.filter(v => v < whiskerLo || v > whiskerHi);
+    return { q1, q2, q3, whiskerLo, whiskerHi, outliers, min: sorted[0], max: sorted[sorted.length - 1] };
+  }
+
+  const allValues = NETFLIX_DATA.map(d => d[key]);
+  const allStats = boxStats(allValues);
+  const movieStats = boxStats(NETFLIX_DATA.filter(d => d.type === "MOVIE").map(d => d[key]));
+  const showStats = boxStats(NETFLIX_DATA.filter(d => d.type === "SHOW").map(d => d[key]));
+
+  const yDomain = [d3.min([allStats.min]), d3.max([allStats.max])];
+  const y = d3.scaleLinear().domain(yDomain).nice().range([H, 0]);
+
+  function drawBox(g, cx, boxW, stats, color) {
+    g.append("line").attr("x1", cx).attr("x2", cx).attr("y1", y(stats.whiskerLo)).attr("y2", y(stats.q1))
+      .attr("stroke", color).attr("stroke-width", 1.5);
+    g.append("line").attr("x1", cx).attr("x2", cx).attr("y1", y(stats.q3)).attr("y2", y(stats.whiskerHi))
+      .attr("stroke", color).attr("stroke-width", 1.5);
+    g.append("rect").attr("x", cx - boxW / 2).attr("y", y(stats.q3))
+      .attr("width", boxW).attr("height", Math.max(1, y(stats.q1) - y(stats.q3)))
+      .attr("fill", color).attr("fill-opacity", 0.35).attr("stroke", color).attr("stroke-width", 1.5);
+    g.append("line").attr("x1", cx - boxW / 2).attr("x2", cx + boxW / 2)
+      .attr("y1", y(stats.q2)).attr("y2", y(stats.q2)).attr("stroke", color).attr("stroke-width", 2);
+    g.selectAll(null).data(stats.outliers).join("circle")
+      .attr("cx", cx).attr("cy", d => y(d)).attr("r", 2.2)
+      .attr("fill", "none").attr("stroke", color).attr("stroke-width", 1);
+  }
+
+  // --- Matplotlib: una sola caja, sin agrupar ---
+  const x1 = d3.scaleBand().domain(["Todos"]).range([0, W]).padding(0.5);
+  const gm = setupPanel(mplSvg, "#ffffff");
+  drawBox(gm, x1("Todos") + x1.bandwidth() / 2, x1.bandwidth() * 0.6, allStats, "#1f77b4");
+  mplAxes(gm, d3.scaleBand().domain(["Todos"]).range([0, W]), y, "", VAR_LABELS[key]);
+
+  // --- Seaborn: agrupado por type ---
+  const x2 = d3.scaleBand().domain(["MOVIE", "SHOW"]).range([0, W]).padding(0.4);
+  const gs = setupPanel(snsSvg, "#EAEAF2");
+  snsAxes(gs, x2, y, "type", VAR_LABELS[key]);
+  drawBox(gs, x2("MOVIE") + x2.bandwidth() / 2, x2.bandwidth() * 0.7, movieStats, "#4C72B0");
+  drawBox(gs, x2("SHOW") + x2.bandwidth() / 2, x2.bandwidth() * 0.7, showStats, "#DD8452");
+}
+
+function renderScatter() {
+  const kx = varSelect.value, ky = varYSelect.value;
+  const xs = NETFLIX_DATA.map(d => d[kx]);
+  const ys = NETFLIX_DATA.map(d => d[ky]);
+
+  const x = d3.scaleLinear().domain(d3.extent(xs)).nice().range([0, W]);
+  const y = d3.scaleLinear().domain(d3.extent(ys)).nice().range([H, 0]);
+
+  // --- Matplotlib: solo dispersión ---
+  const gm = setupPanel(mplSvg, "#ffffff");
+  gm.selectAll("circle").data(NETFLIX_DATA).join("circle")
+    .attr("cx", d => x(d[kx])).attr("cy", d => y(d[ky])).attr("r", 2.2)
+    .attr("fill", "#1f77b4").attr("opacity", 0.35);
+  mplAxes(gm, x, y, VAR_LABELS[kx], VAR_LABELS[ky]);
+
+  // --- Seaborn: dispersión + regresión + banda aproximada ---
+  const gs = setupPanel(snsSvg, "#EAEAF2");
+  snsAxes(gs, x, y, VAR_LABELS[kx], VAR_LABELS[ky]);
+  gs.selectAll("circle").data(NETFLIX_DATA).join("circle")
+    .attr("cx", d => x(d[kx])).attr("cy", d => y(d[ky])).attr("r", 2.2)
+    .attr("fill", "#4C72B0").attr("opacity", 0.35);
+
+  const { slope, intercept, resStd } = linreg(xs, ys);
+  const xDom = x.domain();
+  const bandPts = [
+    { x: xDom[0], yhat: intercept + slope * xDom[0] },
+    { x: xDom[1], yhat: intercept + slope * xDom[1] },
+  ];
+  const band = d3.area()
+    .x(d => x(d.x))
+    .y0(d => y(d.yhat - 1.96 * resStd))
+    .y1(d => y(d.yhat + 1.96 * resStd));
+  gs.append("path").datum(bandPts).attr("d", band).attr("fill", "#DD8452").attr("opacity", 0.2);
+  const line = d3.line().x(d => x(d.x)).y(d => y(d.yhat));
+  gs.append("path").datum(bandPts).attr("d", line).attr("fill", "none")
+    .attr("stroke", "#DD8452").attr("stroke-width", 2.5);
+}
+
+function updateCode() {
+  const type = chartType.value;
+  const snippet = CODE_SNIPPETS[type];
+  if (type === "scatter") {
+    document.getElementById("mpl-code").textContent = snippet.mpl
+      .replaceAll("{vx}", varSelect.value).replaceAll("{vy}", varYSelect.value);
+    document.getElementById("sns-code").textContent = snippet.sns
+      .replaceAll("{vx}", varSelect.value).replaceAll("{vy}", varYSelect.value);
+  } else {
+    document.getElementById("mpl-code").textContent = snippet.mpl.replaceAll("{v}", varSelect.value);
+    document.getElementById("sns-code").textContent = snippet.sns.replaceAll("{v}", varSelect.value);
+  }
+}
+
+function render() {
+  updateControls();
+  const type = chartType.value;
+  if (type === "hist") renderHist();
+  else if (type === "box") renderBox();
+  else renderScatter();
+  updateCode();
+}
+
+chartType.addEventListener("change", render);
+varSelect.addEventListener("change", render);
+varYSelect.addEventListener("change", render);
+render();
+</script>
+
+</body>
+</html>

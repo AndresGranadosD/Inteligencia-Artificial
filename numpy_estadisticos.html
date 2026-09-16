@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NumPy interactivo — Estadísticos | Semana 4</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #161d2e;
+    --panel-border: #26314a;
+    --text: #e7ecf7;
+    --text-dim: #9aa7c2;
+    --accent: #5eb1ff;
+    --accent-2: #ffb75e;
+    --good: #5edc9a;
+    --grid: #26314a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  header {
+    padding: 32px 20px 16px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .back-link {
+    display: inline-block;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-decoration: none;
+    margin-bottom: 10px;
+  }
+  .back-link:hover { color: var(--accent); }
+  header .kicker {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  header h1 {
+    margin: 6px 0 8px;
+    font-size: clamp(22px, 4vw, 32px);
+  }
+  header p {
+    color: var(--text-dim);
+    max-width: 70ch;
+  }
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  section.card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 20px clamp(16px, 4vw, 28px) 28px;
+  }
+  section.card h2 {
+    margin-top: 4px;
+    font-size: 20px;
+  }
+  section.card .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 8px;
+    align-items: flex-end;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  select {
+    background: #0f1420;
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    min-width: 170px;
+  }
+  .field.slider { min-width: 220px; }
+  input[type="range"] {
+    width: 220px;
+    accent-color: var(--accent);
+  }
+  .slider-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--accent-2);
+  }
+  .viz-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+    margin-top: 14px;
+  }
+  svg { flex-shrink: 0; max-width: 100%; height: auto; }
+  .axis text { fill: var(--text-dim); font-size: 11px; }
+  .axis path, .axis line { stroke: var(--panel-border); }
+  .bar { fill: var(--accent); opacity: 0.55; }
+  .marker-line { stroke-width: 2px; }
+  .marker-mean { stroke: var(--good); }
+  .marker-median { stroke: var(--accent-2); }
+  .marker-pct { stroke: #ff6b9d; stroke-dasharray: 4 3; }
+  .legend {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 4px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch-line { width: 16px; height: 2px; display: inline-block; }
+  .stats {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--panel-border);
+    padding-bottom: 6px;
+    font-size: 14px;
+  }
+  .stat-row span:first-child { color: var(--text-dim); }
+  .stat-row code { color: var(--text-dim); font-size: 11px; }
+  .stat-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .verdict {
+    margin-top: 6px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    background: #101826;
+    border: 1px solid var(--panel-border);
+  }
+  .learn {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--accent-2);
+  }
+  footer {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">&larr; Recurso interactivo Semana 4</a>
+  <div class="kicker">Semana 4 · Módulo 2 · NumPy</div>
+  <h1>Cómo NumPy resume una variable numérica</h1>
+  <p>
+    Cada vez que llamas <code>np.mean()</code>, <code>np.median()</code>, <code>np.std()</code> o
+    <code>np.percentile()</code> sobre una columna, NumPy reduce miles de valores a un solo
+    número que describe el conjunto. Cambia la variable, filtra por tipo de título y mueve el
+    percentil para ver cómo se comportan esos estadísticos sobre los mismos datos del taller.
+  </p>
+</header>
+
+<main>
+
+  <section class="card" id="stats-section">
+    <h2>Media, mediana, desviación estándar y percentiles</h2>
+    <div class="subtitle">
+      El histograma muestra la distribución de la variable elegida. Las líneas marcan dónde
+      caen la media, la mediana y el percentil que selecciones.
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label for="var-select">Variable</label>
+        <select id="var-select"></select>
+      </div>
+      <div class="field">
+        <label for="type-select">Filtrar por tipo</label>
+        <select id="type-select">
+          <option value="ALL">Todos (MOVIE + SHOW)</option>
+          <option value="MOVIE">Solo MOVIE</option>
+          <option value="SHOW">Solo SHOW</option>
+        </select>
+      </div>
+      <div class="field slider">
+        <label for="pct-slider">Percentil — <span class="slider-value" id="pct-value">50</span></label>
+        <input type="range" id="pct-slider" min="1" max="99" value="50" step="1">
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch-line" style="background:var(--good)"></span> Media — <code>np.mean(arr)</code></span>
+      <span><span class="swatch-line" style="background:var(--accent-2)"></span> Mediana — <code>np.median(arr)</code></span>
+      <span><span class="swatch-line" style="background:#ff6b9d"></span> Percentil — <code>np.percentile(arr, p)</code></span>
+    </div>
+
+    <div class="viz-wrap">
+      <svg id="hist-svg" width="560" height="360"></svg>
+      <div class="stats">
+        <div class="stat-row"><span>n (registros filtrados)</span><span id="stat-n">—</span></div>
+        <div class="stat-row"><span>Media <code>np.mean</code></span><span id="stat-mean">—</span></div>
+        <div class="stat-row"><span>Mediana <code>np.median</code></span><span id="stat-median">—</span></div>
+        <div class="stat-row"><span>Desv. estándar <code>np.std</code></span><span id="stat-std">—</span></div>
+        <div class="stat-row"><span>Percentil <span id="stat-pct-label">50</span> <code>np.percentile</code></span><span id="stat-pct">—</span></div>
+        <div class="stat-row"><span>Mínimo / máximo</span><span id="stat-minmax">—</span></div>
+        <div id="stat-verdict" class="verdict">—</div>
+        <div class="learn">Aprenderás: cómo NumPy resume una variable numérica y por qué media y mediana pueden diferir cuando la distribución no es simétrica.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Módulo 2/4 del recurso interactivo de Semana 4. Dataset: <code>titles.csv</code>
+  (mismo del <a href="https://github.com/cesarabs54/NRC-70446-Fundamentos-para-IA/blob/master/Semana_4/Semana_4_Actividad/EIARV011_A4_Taller.md">taller de la semana</a>), filtrado a casos
+  completos con <code>build_data.py</code>. Complementa el taller, no lo reemplaza.
+</footer>
+
+<script>
+const VAR_LABELS = {
+  imdb_score: "Puntaje IMDb",
+  tmdb_score: "Puntaje TMDB",
+  runtime: "Duración (min)",
+  imdb_votes: "Votos IMDb",
+  release_year: "Año de estreno",
+};
+const NUMERIC_VARS = ["imdb_score", "tmdb_score", "runtime", "imdb_votes", "release_year"];
+
+function populateSelect(sel, keys, labelFn, selected) {
+  sel.innerHTML = "";
+  keys.forEach(k => {
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.textContent = labelFn(k);
+    if (k === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+
+function median(sorted) {
+  const n = sorted.length;
+  const mid = Math.floor(n / 2);
+  return n % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function std(arr, m) {
+  const v = arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length;
+  return Math.sqrt(v);
+}
+
+// Interpolación lineal, igual al método por defecto de np.percentile.
+function percentile(sorted, p) {
+  const n = sorted.length;
+  const rank = (p / 100) * (n - 1);
+  const lo = Math.floor(rank);
+  const hi = Math.ceil(rank);
+  if (lo === hi) return sorted[lo];
+  const frac = rank - lo;
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * frac;
+}
+
+const varSelect = document.getElementById("var-select");
+const typeSelect = document.getElementById("type-select");
+const pctSlider = document.getElementById("pct-slider");
+const pctValueLabel = document.getElementById("pct-value");
+
+populateSelect(varSelect, NUMERIC_VARS, k => VAR_LABELS[k], "runtime");
+
+const svg = d3.select("#hist-svg");
+const margin = { top: 16, right: 16, bottom: 44, left: 56 };
+const W = 560 - margin.left - margin.right;
+const H = 360 - margin.top - margin.bottom;
+const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+const xAxisG = g.append("g").attr("class", "axis").attr("transform", `translate(0,${H})`);
+const yAxisG = g.append("g").attr("class", "axis");
+const xLabel = svg.append("text").attr("class", "axis").attr("text-anchor", "middle")
+  .attr("x", margin.left + W / 2).attr("y", 356)
+  .style("fill", "var(--text-dim)").style("font-size", "12px");
+
+function render() {
+  const key = varSelect.value;
+  const typeFilter = typeSelect.value;
+  const pct = +pctSlider.value;
+  pctValueLabel.textContent = pct;
+  document.getElementById("stat-pct-label").textContent = pct;
+
+  let rows = NETFLIX_DATA;
+  if (typeFilter !== "ALL") rows = rows.filter(d => d.type === typeFilter);
+  const values = rows.map(d => d[key]);
+  const sorted = [...values].sort((a, b) => a - b);
+
+  const m = mean(values);
+  const med = median(sorted);
+  const s = std(values, m);
+  const p = percentile(sorted, pct);
+  const lo = sorted[0], hi = sorted[sorted.length - 1];
+
+  const x = d3.scaleLinear().domain([lo, hi]).nice().range([0, W]);
+  const bins = d3.bin().domain(x.domain()).thresholds(30)(values);
+  const y = d3.scaleLinear().domain([0, d3.max(bins, b => b.length)]).nice().range([H, 0]);
+
+  xAxisG.transition().duration(250).call(d3.axisBottom(x).ticks(6));
+  yAxisG.transition().duration(250).call(d3.axisLeft(y).ticks(5));
+  xLabel.text(VAR_LABELS[key]);
+
+  const bars = g.selectAll("rect.bar").data(bins);
+  bars.join(
+    enter => enter.append("rect").attr("class", "bar")
+      .attr("x", d => x(d.x0) + 1)
+      .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+      .attr("y", d => y(d.length))
+      .attr("height", d => H - y(d.length)),
+    update => update.transition().duration(250)
+      .attr("x", d => x(d.x0) + 1)
+      .attr("width", d => Math.max(0, x(d.x1) - x(d.x0) - 1))
+      .attr("y", d => y(d.length))
+      .attr("height", d => H - y(d.length))
+  );
+
+  const markers = [
+    { key: "mean", value: m, cls: "marker-mean" },
+    { key: "median", value: med, cls: "marker-median" },
+    { key: "pct", value: p, cls: "marker-pct" },
+  ];
+  const lines = g.selectAll("line.marker-line").data(markers, d => d.key);
+  lines.join(
+    enter => enter.append("line")
+      .attr("class", d => "marker-line " + d.cls)
+      .attr("x1", d => x(d.value)).attr("x2", d => x(d.value))
+      .attr("y1", 0).attr("y2", H),
+    update => update.transition().duration(250)
+      .attr("x1", d => x(d.value)).attr("x2", d => x(d.value))
+      .attr("y1", 0).attr("y2", H)
+  );
+
+  document.getElementById("stat-n").textContent = values.length;
+  document.getElementById("stat-mean").textContent = m.toFixed(2);
+  document.getElementById("stat-median").textContent = med.toFixed(2);
+  document.getElementById("stat-std").textContent = s.toFixed(2);
+  document.getElementById("stat-pct").textContent = p.toFixed(2);
+  document.getElementById("stat-minmax").textContent = `${lo.toFixed(1)} / ${hi.toFixed(1)}`;
+
+  const skewGap = Math.abs(m - med) / (s || 1);
+  const verdict = document.getElementById("stat-verdict");
+  if (skewGap > 0.15) {
+    verdict.textContent = `Media y mediana difieren notablemente (${m.toFixed(2)} vs ${med.toFixed(2)}): la distribución de ${VAR_LABELS[key]} es asimétrica, probablemente por valores extremos que arrastran la media.`;
+  } else {
+    verdict.textContent = `Media y mediana son similares (${m.toFixed(2)} vs ${med.toFixed(2)}): la distribución de ${VAR_LABELS[key]} es aproximadamente simétrica.`;
+  }
+}
+
+varSelect.addEventListener("change", render);
+typeSelect.addEventListener("change", render);
+pctSlider.addEventListener("input", render);
+render();
+</script>
+
+</body>
+</html>
